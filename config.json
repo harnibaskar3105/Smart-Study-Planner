@@ -1,0 +1,11 @@
+{
+  "appearance_mode": "dark",
+  "theme_name": "blue",
+  "custom_accent": "#2f9e99",
+  "notifications_enabled": true,
+  "study_reminders_enabled": true,
+  "sound_effects_enabled": true,
+  "default_study_duration": 50,
+  "font_size": 13,
+  "auto_save_enabled": true
+}
