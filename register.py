@@ -472,13 +472,13 @@ validation_label = ctk.CTkLabel(content, text="Complete all fields to enable you
 validation_label.pack(pady=(0, 2))
 
 btn_frame = ctk.CTkFrame(content, fg_color="transparent")
-btn_frame.pack(pady=(12, 0))
+btn_frame.pack(fill="x", padx=18, pady=(12, 0))
 
-register_btn = ctk.CTkButton(btn_frame, text="Register", width=160, height=48, corner_radius=18, font=("Segoe UI Semibold", 15), command=register_action)
-register_btn.grid(row=0, column=0, padx=8)
+register_btn = ctk.CTkButton(btn_frame, text="Register", height=48, corner_radius=18, font=("Segoe UI Semibold", 15), command=register_action)
+register_btn.pack(fill="x", pady=(0, 10))
 
-exit_btn = ctk.CTkButton(btn_frame, text="Back to Login", width=160, height=48, corner_radius=18, font=("Segoe UI Semibold", 15), command=go_back)
-exit_btn.grid(row=0, column=1, padx=8)
+exit_btn = ctk.CTkButton(btn_frame, text="Back to Login", height=44, corner_radius=18, font=("Segoe UI Semibold", 15), command=go_back)
+exit_btn.pack(fill="x")
 
 for field in [fullname_entry, email_entry, username_entry, password_entry, confirm_entry]:
     field.bind("<KeyRelease>", validate_form)

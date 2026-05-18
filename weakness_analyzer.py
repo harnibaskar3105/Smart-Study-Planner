@@ -90,7 +90,7 @@ class WeaknessAnalyzerPage:
         ctk.CTkLabel(rec_panel, text="Weak Topic Priority", font=("Segoe UI Semibold", 16), text_color=self.colors["text"]).pack(anchor="w", padx=18, pady=(0, 8))
         self.topic_tree = ttk.Treeview(rec_panel, columns=("subject", "topic", "rating", "avoids", "score"), show="headings", height=8)
         for key, label, width in [("subject", "Subject", 95), ("topic", "Topic", 130), ("rating", "Rating", 65), ("avoids", "Avoids", 65), ("score", "Score", 65)]:
-            self.topic_tree.heading(key, text=label)
+            self.topic_tree.heading(key, text=label, anchor="w")
             self.topic_tree.column(key, width=width, anchor="w")
         self.topic_tree.pack(fill="both", expand=True, padx=18, pady=(0, 18))
         style = ttk.Style()

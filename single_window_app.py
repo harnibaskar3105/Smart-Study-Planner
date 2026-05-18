@@ -334,18 +334,18 @@ class SingleWindowApp(ctk.CTk):
         frame = ctk.CTkFrame(self.container, fg_color=colors["bg"])
         frame.pack(fill="both", expand=True)
         card = ctk.CTkFrame(frame, width=520, corner_radius=30, fg_color=colors["panel"], border_width=1, border_color=colors["panel_border"])
-        card.place(relx=0.5, rely=0.52, anchor="center")
-        card.configure(height=720)
+        card.place(relx=0.5, rely=0.5, anchor="center")
+        card.configure(height=760)
         card.pack_propagate(False)
 
-        ctk.CTkLabel(card, text="Create your account", font=("Segoe UI Semibold", 28), text_color=colors["text"]).pack(pady=(38, 8))
-        ctk.CTkLabel(card, text="Registration stays in this app window.", font=("Segoe UI", 13), text_color=colors["muted"]).pack(pady=(0, 24))
+        ctk.CTkLabel(card, text="Create your account", font=("Segoe UI Semibold", 28), text_color=colors["text"]).pack(pady=(34, 8))
+        ctk.CTkLabel(card, text="Registration stays in this app window.", font=("Segoe UI", 13), text_color=colors["muted"]).pack(pady=(0, 20))
         fonts = get_fonts(self.preferences)
 
         def labeled_auth_field(label, placeholder, show=None):
             self.form_label(card, label, fonts).pack(anchor="w", padx=56, pady=(0, 6))
             field = self.entry(card, placeholder, show=show)
-            field.pack(fill="x", padx=56, pady=(0, 12))
+            field.pack(fill="x", padx=56, pady=(0, 10))
             return field
 
         name_entry = labeled_auth_field("Full name", "Full name")
@@ -386,8 +386,10 @@ class SingleWindowApp(ctk.CTk):
             self.build_shell()
             self.show_page("dashboard", animate=False)
 
-        self.button(card, "Register", submit).pack(fill="x", padx=56, pady=(4, 12))
-        self.button(card, "Back to login", self.show_login, variant="secondary").pack(fill="x", padx=56)
+        actions = ctk.CTkFrame(card, fg_color="transparent")
+        actions.pack(fill="x", padx=56, pady=(6, 32))
+        self.button(actions, "Register", submit, height=48).pack(fill="x", pady=(0, 12))
+        self.button(actions, "Back to login", self.show_login, variant="secondary", height=44).pack(fill="x")
         self.bind("<Return>", lambda _event: submit())
         name_entry.focus()
 
@@ -547,27 +549,6 @@ class SingleWindowApp(ctk.CTk):
         top.grid_columnconfigure(0, weight=1)
         display_name = snapshot.user.get("name") or self.username or "Student"
         ctk.CTkLabel(top, text=f"HELLO, {display_name.split()[0].upper()}!", font=fonts["title"], text_color=self.colors["text"]).grid(row=0, column=0, sticky="w")
-        ctk.CTkLabel(top, text="Search", font=fonts["small"], text_color=self.colors["muted"]).grid(row=0, column=1, sticky="sw", padx=(16, 10), pady=(0, 4))
-        search = ctk.CTkEntry(
-            top,
-            placeholder_text="Search tasks, subjects, goals",
-            width=280,
-            height=40,
-            corner_radius=16,
-            fg_color=self.colors["entry"],
-            border_color=self.colors["entry_border"],
-            text_color=self.colors["text"],
-            placeholder_text_color=self.colors["muted"],
-        )
-        search.grid(row=1, column=1, sticky="e", padx=(16, 10))
-
-        def run_search(_event=None):
-            self.task_filter = search.get().strip()
-            self.show_page("tasks")
-
-        search.bind("<Return>", run_search)
-        self.button(top, "Search", run_search, height=40).grid(row=1, column=2, sticky="e", padx=(0, 10))
-        self.button(top, "Today", lambda: self.show_page("tasks"), height=40).grid(row=1, column=3, sticky="e")
 
         body = ctk.CTkFrame(frame, fg_color="transparent")
         body.pack(fill="both", expand=True)
@@ -1665,7 +1646,7 @@ class SingleWindowApp(ctk.CTk):
         topics.grid(row=1, column=1, sticky="nsew", padx=(8, 0))
         tree = ttk.Treeview(topics, columns=("subject", "topic", "rating", "avoids", "priority"), show="headings", height=7)
         for column, label, width in [("subject", "Subject", 110), ("topic", "Topic", 160), ("rating", "Rating", 60), ("avoids", "Avoids", 60), ("priority", "Priority", 70)]:
-            tree.heading(column, text=label)
+            tree.heading(column, text=label, anchor="w")
             tree.column(column, width=width, anchor="w")
         tree.pack(fill="both", expand=True, padx=18, pady=(0, 18))
         for topic in weakness["weak_topics"][:12]:
