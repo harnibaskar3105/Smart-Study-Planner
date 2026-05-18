@@ -32,6 +32,7 @@ NAV_ITEMS = [
     ("Dashboard", "dashboard"),
     ("Add Task", "add_task"),
     ("Progress", "progress"),
+    ("Attendance", "attendance"),
     ("Tasks", "tasks"),
     ("Analytics", "analytics"),
     ("Settings", "settings"),
@@ -483,7 +484,7 @@ class SingleWindowApp(ctk.CTk):
         builders = {
             "dashboard": self.page_dashboard,
             "add_task": self.page_add_task,
-            "progress": self.page_attendance,
+            "progress": self.page_progress,
             "tasks": self.page_tasks,
             "attendance": self.page_attendance,
             "analytics": self.page_analytics,
@@ -542,8 +543,6 @@ class SingleWindowApp(ctk.CTk):
         snapshot = load_dashboard_snapshot(self.username)
         game = XPSystem(self.username).game_state()
         summary = snapshot.summary
-        attendance_data = snapshot.attendance
-
         top = ctk.CTkFrame(frame, fg_color="transparent")
         top.pack(fill="x", pady=(0, 12))
         top.grid_columnconfigure(0, weight=1)
@@ -562,7 +561,7 @@ class SingleWindowApp(ctk.CTk):
         focus.grid(row=0, column=0, columnspan=2, sticky="ew", padx=(0, 12), pady=(0, 12))
         focus.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(focus, text="Focus cockpit", font=fonts["body_semibold"], text_color=self.colors["white"]).grid(row=0, column=0, sticky="w", padx=22, pady=(18, 2))
-        ctk.CTkLabel(focus, text="Plan today, protect attendance, and keep your streak moving.", font=fonts["section"], text_color=self.colors["white"], wraplength=700, justify="left").grid(row=1, column=0, sticky="w", padx=22, pady=(0, 18))
+        ctk.CTkLabel(focus, text="Plan today, log your study time, and keep your streak moving.", font=fonts["section"], text_color=self.colors["white"], wraplength=700, justify="left").grid(row=1, column=0, sticky="w", padx=22, pady=(0, 18))
 
         grid = ctk.CTkFrame(body, fg_color="transparent")
         grid.grid(row=1, column=0, columnspan=2, sticky="ew", padx=(0, 12), pady=(0, 12))
@@ -616,21 +615,26 @@ class SingleWindowApp(ctk.CTk):
             ctk.CTkLabel(row, text=fmt_date(task.get("due_date") or task.get("study_date")).replace(" 2026", ""), width=82, height=56, corner_radius=18, fg_color=self.colors["teal"], text_color=self.colors["white"], font=fonts["small"]).pack(side="left", padx=(0, 12))
             ctk.CTkLabel(row, text=f"{task.get('title', 'Study session')}\n{task.get('subject') or 'General'}", font=fonts["small"], text_color=self.colors["text"], justify="left", anchor="w").pack(side="left", fill="x", expand=True)
 
-        projects = self.panel(body, "My projects")
+        projects = self.panel(body, "Study time this week")
         projects.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=(0, 12))
         projects_body = ctk.CTkFrame(projects, fg_color="transparent")
         projects_body.pack(fill="both", expand=True, padx=18, pady=(0, 16))
         for column in range(7):
             projects_body.grid_columnconfigure(column, weight=1)
         ctk.CTkLabel(projects_body, text=game["quote"], font=fonts["body_semibold"], text_color=self.colors["deep"], anchor="w").grid(row=0, column=0, columnspan=7, sticky="ew", padx=6, pady=(0, 16))
-        for index, item in enumerate(snapshot.attendance["week"]):
-            chip = ctk.CTkFrame(projects_body, width=78, height=68, corner_radius=18, fg_color=self.status_color(item["status"]))
+        max_week_minutes = max(summary["weekly_minutes"] or [1]) or 1
+        for index, (label, minutes) in enumerate(zip(summary["weekly_labels"], summary["weekly_minutes"])):
+            intensity = minutes / max_week_minutes
+            chip_color = self.colors["primary"] if minutes else self.colors["tile"]
+            chip = ctk.CTkFrame(projects_body, width=78, height=68, corner_radius=18, fg_color=chip_color)
             chip.grid(row=1, column=index, sticky="ew", padx=6, pady=(0, 16))
             chip.grid_propagate(False)
-            text_color = self.colors["white"] if item["status"] == "present" else self.colors["text"]
-            ctk.CTkLabel(chip, text=item["label"], font=("Segoe UI Semibold", 12), text_color=text_color).place(relx=0.5, rely=0.36, anchor="center")
-            ctk.CTkLabel(chip, text=item["status"].title(), font=("Segoe UI", 10), text_color=text_color).place(relx=0.5, rely=0.68, anchor="center")
-        project_meta = f"Study streak {game['study_streak']} day(s)    Task streak {game['task_streak']}    Consistency {game['consistency_score']}%"
+            text_color = self.colors["white"] if minutes else self.colors["text"]
+            ctk.CTkLabel(chip, text=label, font=("Segoe UI Semibold", 12), text_color=text_color).place(relx=0.5, rely=0.34, anchor="center")
+            ctk.CTkLabel(chip, text=f"{minutes} min", font=("Segoe UI", 10), text_color=text_color).place(relx=0.5, rely=0.68, anchor="center")
+            if minutes:
+                ctk.CTkFrame(chip, height=max(4, int(22 * intensity)), corner_radius=999, fg_color=self.colors["white"]).place(relx=0.12, rely=0.82, relwidth=0.76, anchor="w")
+        project_meta = f"This week {sum(summary['weekly_minutes'])} min    Study streak {game['study_streak']} day(s)    Consistency {game['consistency_score']}%"
         ctk.CTkLabel(projects_body, text=project_meta, font=fonts["small"], text_color=self.colors["muted"], anchor="w").grid(row=2, column=0, columnspan=7, sticky="ew", padx=6)
 
         side = ctk.CTkFrame(body, fg_color="transparent")
@@ -645,7 +649,6 @@ class SingleWindowApp(ctk.CTk):
         xp_bar.pack(fill="x", padx=18, pady=(10, 18))
         xp_bar.set(game["level_progress"])
 
-        self.circular_meter(side, "Attendance", snapshot.attendance["percentage"], self.colors["pink"], diameter=112).pack(fill="x", pady=(0, 12))
         meters = ctk.CTkFrame(side, fg_color="transparent")
         meters.pack(fill="x", pady=(0, 12))
         meters.grid_columnconfigure((0, 1), weight=1)
@@ -653,51 +656,51 @@ class SingleWindowApp(ctk.CTk):
         rating_value = min(100, max(0, 100 - (summary.get("overdue_tasks", 0) * 10)))
         self.circular_meter(meters, "Rating", rating_value, self.colors["yellow"], diameter=92).grid(row=0, column=1, sticky="ew", padx=(6, 0))
 
-        attendance = ctk.CTkFrame(side, fg_color=self.colors["surface"], corner_radius=22, border_width=1, border_color=self.colors["surface_border"])
-        attendance.pack(fill="x", pady=(0, 12))
-        leave_enabled = attendance_data.get("leave_enabled", True)
-        if attendance_data["today_is_leave"]:
-            status_text = f"Today is your weekly leave day ({attendance_data['leave_day_name']})."
-            button_text = "Leave day"
-            button_state = "disabled"
-            button_color = self.colors["secondary"]
-        elif attendance_data["today_status"] == "present":
-            status_text = "Present marked for today."
-            button_text = "Marked present"
-            button_state = "disabled"
-            button_color = self.colors["green"]
-        else:
-            status_text = "Mark present today to keep attendance complete."
-            button_text = "Mark present today"
-            button_state = "normal"
-            button_color = self.colors["deep"]
-        hint_text = (
-            f"Weekly leave: {attendance_data['leave_day_name']}. Holiday locks if attendance falls below 75%."
-            if leave_enabled
-            else "Weekly holiday is locked until attendance reaches 75% again."
-        )
-        ctk.CTkLabel(attendance, text=status_text, font=fonts["body_semibold"], text_color=self.colors["text"], wraplength=230, justify="left").pack(anchor="w", padx=18, pady=(16, 8))
-        ctk.CTkLabel(attendance, text=hint_text, font=fonts["small"], text_color=self.colors["muted"], wraplength=230, justify="left").pack(anchor="w", padx=18, pady=(0, 10))
-        mark_btn = ctk.CTkButton(attendance, text=button_text, height=38, corner_radius=16, fg_color=button_color, hover_color=self.colors["deep_hover"], text_color=self.colors["white"], state=button_state, font=fonts["body_semibold"], command=lambda: self.mark_present_and_refresh("dashboard"))
-        mark_btn.pack(fill="x", padx=18, pady=(0, 14))
-        leave_var = ctk.StringVar(value=attendance_data["leave_day_name"])
-        leave_menu = ctk.CTkOptionMenu(
-            attendance,
-            values=WEEKDAY_NAMES,
-            variable=leave_var,
-            height=40,
-            corner_radius=16,
-            fg_color=self.colors["entry"],
-            button_color=self.colors["deep"],
-            button_hover_color=self.colors["deep_hover"],
-            text_color=self.colors["text"],
-            dropdown_fg_color=self.colors["surface"],
-            dropdown_text_color=self.colors["text"],
-            state="normal" if leave_enabled else "disabled",
-            command=lambda day: self.change_leave_from_dashboard(day),
-        )
-        leave_menu.pack(fill="x", padx=18, pady=(0, 16))
         self.button(side, "Open task board", lambda: self.show_page("tasks"), variant="secondary", height=40).pack(fill="x")
+
+    def study_minutes_barchart(self, parent, labels, minutes):
+        frame = ctk.CTkFrame(parent, fg_color="transparent")
+        canvas = Canvas(frame, height=280, highlightthickness=0, bd=0, bg=self.colors["surface"])
+        canvas.pack(fill="both", expand=True)
+
+        def draw(_event=None):
+            canvas.delete("all")
+            width = max(canvas.winfo_width(), 420)
+            height = max(canvas.winfo_height(), 240)
+            left = 48
+            right = 18
+            top = 24
+            bottom = 48
+            chart_width = width - left - right
+            chart_height = height - top - bottom
+            max_minutes = max(minutes or [0]) or 1
+            canvas.create_line(left, top, left, top + chart_height, fill=self.colors["surface_border"], width=1)
+            canvas.create_line(left, top + chart_height, width - right, top + chart_height, fill=self.colors["surface_border"], width=1)
+            for step in range(1, 4):
+                y = top + chart_height - (chart_height * step / 4)
+                value = round(max_minutes * step / 4)
+                canvas.create_line(left, y, width - right, y, fill=self.colors["secondary"], width=1)
+                canvas.create_text(left - 10, y, text=str(value), fill=self.colors["muted"], anchor="e", font=("Segoe UI", 9))
+
+            count = max(len(labels), 1)
+            slot = chart_width / count
+            bar_width = min(58, max(28, slot * 0.48))
+            for index, (label, value) in enumerate(zip(labels, minutes)):
+                x_center = left + (slot * index) + (slot / 2)
+                bar_height = chart_height * (value / max_minutes) if value else 0
+                x0 = x_center - (bar_width / 2)
+                x1 = x_center + (bar_width / 2)
+                y0 = top + chart_height - max(bar_height, 3 if value else 0)
+                y1 = top + chart_height
+                color = self.colors["primary"] if value else self.colors["secondary"]
+                canvas.create_rectangle(x0, y0, x1, y1, fill=color, outline=color)
+                canvas.create_text(x_center, y0 - 12, text=f"{value}", fill=self.colors["text"], font=("Segoe UI Semibold", 10))
+                canvas.create_text(x_center, top + chart_height + 20, text=label, fill=self.colors["muted"], font=("Segoe UI", 10))
+            canvas.create_text(left, height - 12, text="Minutes studied", fill=self.colors["muted"], anchor="w", font=("Segoe UI", 10))
+
+        canvas.bind("<Configure>", draw)
+        frame.after(60, draw)
+        return frame
 
     def circular_meter(self, parent, title, value, accent, diameter=100):
         fonts = get_fonts(self.preferences)
@@ -1538,6 +1541,57 @@ class SingleWindowApp(ctk.CTk):
         tree.bind("<ButtonRelease-1>", select_tree_row)
         tree.bind("<Double-1>", lambda event: (select_tree_row(event), edit_timetable()))
 
+    def page_progress(self):
+        frame = self.page_frame("Progress", "Study time is the progress signal here: log sessions, review weekly minutes, and see where the time is going.")
+        summary = database.get_progress_summary(self.username)
+        weekly_minutes = summary["weekly_minutes"]
+        weekly_total = sum(weekly_minutes)
+        active_days = sum(1 for minutes in weekly_minutes if minutes > 0)
+        average_minutes = round(weekly_total / active_days) if active_days else 0
+        best_index, best_minutes = max(enumerate(weekly_minutes), key=lambda item: item[1]) if weekly_minutes else (0, 0)
+        best_day = summary["weekly_labels"][best_index] if best_minutes else "-"
+
+        stats = ctk.CTkFrame(frame, fg_color="transparent")
+        stats.pack(fill="x", pady=(0, 14))
+        for title, value, accent in [
+            ("Total Study Time", f"{summary['total_study_minutes']} min", self.colors["primary"]),
+            ("This Week", f"{weekly_total} min", self.colors["green"]),
+            ("Average Active Day", f"{average_minutes} min", self.colors["yellow"]),
+            ("Best Day", f"{best_day} {best_minutes} min" if best_minutes else "-", self.colors["pink"]),
+        ]:
+            self.stat_card(stats, title, value, accent).pack(side="left", fill="x", expand=True, padx=6)
+
+        body = ctk.CTkFrame(frame, fg_color="transparent")
+        body.pack(fill="both", expand=True)
+        body.grid_columnconfigure(0, weight=2)
+        body.grid_columnconfigure(1, weight=1)
+        body.grid_rowconfigure(0, weight=1)
+
+        chart = self.panel(body, "Weekly Study Time")
+        chart.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        self.study_minutes_barchart(chart, summary["weekly_labels"], weekly_minutes).pack(fill="both", expand=True, padx=18, pady=(0, 18))
+
+        subjects = self.panel(body, "Time By Subject")
+        subjects.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+        subject_minutes = summary["subject_minutes"][:8]
+        if not subject_minutes:
+            ctk.CTkLabel(subjects, text="Log study sessions in Analytics to build your progress chart.", font=get_fonts(self.preferences)["body_semibold"], text_color=self.colors["muted"], wraplength=260, justify="left").pack(anchor="w", padx=18, pady=(0, 18))
+        else:
+            max_subject_minutes = max(minutes for _subject, minutes in subject_minutes) or 1
+            for subject, minutes in subject_minutes:
+                row = ctk.CTkFrame(subjects, fg_color="transparent")
+                row.pack(fill="x", padx=18, pady=8)
+                ctk.CTkLabel(row, text=subject, width=92, font=("Segoe UI Semibold", 12), text_color=self.colors["text"], anchor="w").pack(side="left")
+                bar = ctk.CTkProgressBar(row, height=12, progress_color=self.colors["primary"], fg_color=self.colors["secondary"])
+                bar.pack(side="left", fill="x", expand=True, padx=10)
+                bar.set(minutes / max_subject_minutes)
+                ctk.CTkLabel(row, text=f"{minutes} min", width=64, font=("Segoe UI", 11), text_color=self.colors["muted"], anchor="e").pack(side="right")
+
+        actions = ctk.CTkFrame(frame, fg_color=self.colors["surface"], corner_radius=22, border_width=1, border_color=self.colors["surface_border"])
+        actions.pack(fill="x", pady=(14, 0))
+        self.button(actions, "Log study session", lambda: self.show_page("analytics"), height=42).pack(side="left", padx=18, pady=18)
+        self.button(actions, "View tasks", lambda: self.show_page("tasks"), variant="secondary", height=42).pack(side="left", padx=(0, 18), pady=18)
+
     def page_attendance(self):
         frame = self.page_frame("Attendance", "Track today and review this week's attendance from the same workspace.")
         snapshot = load_dashboard_snapshot(self.username)
@@ -1867,11 +1921,11 @@ class SingleWindowApp(ctk.CTk):
     def mark_present_and_refresh(self, page):
         database.mark_attendance(self.username, date.today().isoformat(), "present")
         XPSystem(self.username).award_attendance(date.today().isoformat())
-        self.show_page(page, animate=False)
+        self.show_page(page, animate=False, force=True)
 
     def change_leave(self, day):
         database.update_attendance_leave_day(self.username, WEEKDAY_NAMES.index(day))
-        self.show_page("attendance", animate=False)
+        self.show_page("attendance", animate=False, force=True)
 
     def change_leave_from_dashboard(self, day):
         database.update_attendance_leave_day(self.username, WEEKDAY_NAMES.index(day))
